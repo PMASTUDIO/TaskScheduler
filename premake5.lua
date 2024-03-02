@@ -1,76 +1,69 @@
-project "UnitTest++"
-	kind "StaticLib"
-	defines {
-		"_CRT_SECURE_NO_WARNINGS"
-	}
+-- TaskScheduler premake5.lua
 
-	files {
-		"ThirdParty/UnitTest++/UnitTest++/**.cpp",
-		"ThirdParty/UnitTest++/UnitTest++/**.h", 
-	}
+-- Define common configurations
+local configurations = { "Debug", "Release" }
+local platforms = {"x64" }
 
-	if isPosix or isOSX then
-		excludes { "ThirdParty/UnitTest++/UnitTest++/Win32/**.*" }
-	else
-		excludes { "ThirdParty/UnitTest++/UnitTest++/Posix/**.*" }
-	end
+-- Define common flags and options
+local common_flags = { "NoManifest", "ExtraWarnings", "StaticRuntime", "NoMinimalRebuild", "FloatFast" }
+local optimization_flags = { "OptimizeSpeed" }
+local common_defines = { "MT_UNICODE" }
 
+-- Define function to set common configuration properties
+local function set_common_configuration_properties()
+    flags(common_flags)
+    defines(common_defines)
+    objdir("Build/" .. _ACTION .. "/tmp/%{cfg.buildcfg}-%{cfg.platform}")
+end
 
-project "Squish"
-	kind "StaticLib"
-	defines { 
-		"_CRT_SECURE_NO_WARNINGS"
-	}
+-- Define function to set platform-specific properties
+local function set_platform_specific_properties()
+    if os.is("windows") then
+        -- Windows-specific properties
+        buildoptions("/wd4127") -- Compiler Warning (level 4) C4127. Conditional expression is constant
+    else
+        -- Unix-specific properties
+        buildoptions("-std=c++11")
+        linkoptions("-rdynamic")
+        if os.is("macosx") then
+            buildoptions { "-Wno-invalid-offsetof", "-Wno-deprecated-declarations", "-fno-omit-frame-pointer" }
+            -- Add any additional macOS-specific options here
+        else
+            -- Add any additional Unix-specific options here
+        end
+    end
+end
 
-	files {
-		"ThirdParty/Squish/**.*", 
-	}
-
-	includedirs {
-		"ThirdParty/Squish"
-	}
-
+-- Define the main project
 project "TaskScheduler"
     kind "StaticLib"
- 	flags {"NoPCH"}
- 	files {
- 		"Scheduler/**.*",
-		 "ThirdParty/Boost.Context/*.h",
- 	}
+    language "C++"
+    set_common_configuration_properties()
 
-	includedirs {
-		"ThirdParty/Squish", "Scheduler/Include", "ThirdParty/UnitTest++/UnitTest++", "ThirdParty/Boost.Context"
-	}
-	
-	if isPosix or isOSX then
-	excludes { "Src/Platform/Windows/**.*" }
-	else
-	excludes { "Src/Platform/Posix/**.*" }
-	end
+    -- Set platform-specific properties
+    filter { "platforms:x64" }
+        architecture "x86_64"
+        set_platform_specific_properties()
+    filter {}
 
-project "TaskSchedulerTests"
- 	flags {"NoPCH"}
- 	kind "ConsoleApp"
- 	files {
- 		"SchedulerTests/**.*", 
- 	}
+    -- Define project files
+    files {
+        "Scheduler/**.*",
+        "ThirdParty/Boost.Context/*.h",
+    }
 
-	includedirs {
-		"ThirdParty/Squish", "Scheduler/Include", "ThirdParty/UnitTest++/UnitTest++"
-	}
-	
-	if isPosix or isOSX then
-	excludes { "Src/Platform/Windows/**.*" }
-	else
-	excludes { "Src/Platform/Posix/**.*" }
-	end
+    -- Define include directories
+    includedirs {
+        "ThirdParty/Squish",
+        "Scheduler/Include",
+        "ThirdParty/UnitTest++/UnitTest++",
+        "ThirdParty/Boost.Context",
+    }
 
-	links {
-		"UnitTest++", "Squish", "TaskScheduler"
-	}
-
-	if isPosix or isOSX then
-		links { "pthread" }
-	end
-
+    -- Exclude platform-specific files
+    filter { "files:Src/Platform/Windows/**.*" }
+        removefiles { "Src/Platform/Windows/**.*" }
+    filter { "files:Src/Platform/Posix/**.*" }
+        removefiles { "Src/Platform/Posix/**.*" }
+    filter {}
 
