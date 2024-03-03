@@ -60,10 +60,23 @@ project "TaskScheduler"
         "ThirdParty/Boost.Context",
     }
 
+    filter "configurations:Debug"
+        defines { "DEBUG" }
+        runtime "Debug"
+        symbols "On"
+
+    filter "configurations:Release"
+        defines { "RELEASE" }
+        runtime "Release"
+        optimize "On"
+
     -- Exclude platform-specific files
     filter { "files:Src/Platform/Windows/**.*" }
         removefiles { "Src/Platform/Windows/**.*" }
     filter { "files:Src/Platform/Posix/**.*" }
         removefiles { "Src/Platform/Posix/**.*" }
     filter {}
+
+ 
+
 
